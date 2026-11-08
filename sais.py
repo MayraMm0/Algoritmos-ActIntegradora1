@@ -1,15 +1,53 @@
+import sys
+import time
+import tracemalloc
+
+# Aumentar límite de recursión para archivos txt más grandes
+sys.setrecursionlimit(300000)
+
 # Divide suffix array en buckets para cada caracter
 def getBuckets(T):
-    count = {}
+    # En lugar de diccionarios, usar un arreglo directo según el valor máximo del alfabeto
+    max_val = max(T) if T else 0
+    count = [0] * (max_val +1)
     buckets = {} # estructura: buckets[char] = (inicio_bucket, fin_bucket)
+    
     for c in T:
-        count[c] = count.get(c, 0) + 1
+        count[c] += 1
+        
     start = 0
-    for c in sorted(count.keys()):
-        buckets[c] = (start, start + count[c])
-        start += count[c]
+    
+    for c in range(max_val+1):
+        if count[c] > 0:
+            buckets[c] = (start, start + count[c])
+            start += count[c]
+            
     return buckets
 
+# Función auxiliar que compara dos subcademas LMS
+# compara elemento por elemento sin crear sub-listas (mejor para ram)
+def lms_equal(T, t, i, j, LMS):
+    # Si son el mismo índice, son iguales
+    if i == j:
+        return True
+    
+    # Manejo seguro por si algún índice es la posición terminal
+    end_i = LMS.get(i, i)
+    end_j = LMS.get(j, j)
+    
+    len_i = end_i - i + 1
+    len_j = end_j - j + 1
+    
+    if len_i != len_j:
+        return False
+        
+    for k in range(len_i):
+        if i + k >= len(T) or j + k >= len(T):
+            return False
+        if T[i + k] != T[j + k] or t[i + k] != t[j + k]:
+            return False
+            
+    return True
 
 def sais(T):
     # 1. clasificación de sufijos entre S y L
@@ -41,7 +79,10 @@ def sais(T):
                 LMS[i] = end
             end = i
 
-    LMS[len(T) - 1] = len(T) - 1
+    if end is not None:
+        LMS[len(T) - 1 ] = end
+    else: 
+        LMS[len(T) - 1] = len(T) - 1
     
     # Inducir sufijos L (recorremos de izq a der)
     count = {} # Reiniciar punteros a inicio de cada bucket
@@ -72,7 +113,7 @@ def sais(T):
     for i in range(len(SA)):
         if SA[i] > 0 and t[SA[i]] == "S" and t[SA[i] - 1] == "L":
             idx = SA[i]
-            if prev is not None and T[prev:LMS[prev]] != T[idx:LMS[idx]]:
+            if prev is not None and not lms_equal(T, t, prev, idx, LMS):
                 name += 1 # Si dos no son iguales incremente name
             prev = idx
             namesp[idx] = name # Si dos consecutivas son identicas se asigna mismo name
@@ -130,7 +171,40 @@ def sais(T):
 
     return SA
 
-string = "banana$"
-T = [ord(c) for c in string]
-SA = sais(T)
-print(SA)
+
+def procesar_libro(ruta_libro):
+    try:
+        #1. Leer archivo
+        with open(ruta_libro, 'r', encoding='utf-8') as l:
+            texto = l.read()
+    except FileNotFoundError:
+        print("No se encontró el archivo")
+        return
+        
+    # añadir símbolo terminal '$'
+    if not texto.endswith('$'):
+        texto += '$'
+    
+    T = [ord(c) for c in texto]
+    
+    # 2. Iniciar perfilado de memoria y tiempo
+    tracemalloc.start()
+    tiempo_inicio = time.perf_counter()
+    
+    #ejecución de algoritmo sais
+    SA = sais(T)
+    
+    tiempo_fin = time.perf_counter()
+    current, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    
+    # 3. Sacar métricas
+    tiempo_total = tiempo_fin - tiempo_inicio
+    memoria_pico_mb = peak / (1024 * 1024) # megabyte
+    
+    print(f"Libro: {ruta_libro}")
+    print(f"  - Caracteres procesados: {len(T)}")
+    print(f"  - Tiempo de ejecución: {tiempo_total:.4f} segundos")
+    print(f"  - Memoria pico alcanzada: {memoria_pico_mb:.2f} MB")
+    print("-" * 50)
+    #print(f"SA: {SA}")

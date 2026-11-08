@@ -55,5 +55,5 @@ def suffix_array(T):
 
     return SA
 
-SA = suffix_array("mississippi")
-print(SA)
+#SA = suffix_array("mississippi")
+#print(SA)
