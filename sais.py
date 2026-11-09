@@ -52,7 +52,7 @@ def lms_equal(T, t, i, j, LMS):
 def sais(T):
     # 1. clasificación de sufijos entre S y L
     # S -> si T[i-1] < T[i]
-    # T -> si T[i-1] > T[i]
+    # L -> si T[i-1] > T[i]
     t = ["_"] * len(T)
     
     t[len(T) - 1] = "S"

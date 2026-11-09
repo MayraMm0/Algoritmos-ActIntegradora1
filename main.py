@@ -11,15 +11,17 @@ phantomOpera = r"libros/The_Phantom_of_the_Opera.txt"
 libros = [metamorphosis, littleWomen, pridePrejudice, phantomOpera]
 
 if __name__ == "__main__":
-    #print(" ==== SAIS ====")
+    print(" ==== SAIS ====")
 
-    #for libro in libros:
-       # sais.procesar_libro(libro)
+    for libro in libros:
+       sais.procesar_libro(libro)
 
-    print("Manber and Myers")
+    print(" ==== Manber and Myers ====")
 
     for libro in libros:
         print(f"{libro}")
         manber_myers.mediciones(libro)
+        
+    
 
 
