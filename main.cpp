@@ -5,10 +5,12 @@
 #include <algorithm>
 #include <fstream>
 #include <chrono>
-
 using namespace std;
 
 void procesar_libro(string ruta_libro);
+
+void mediciones(const string& ruta);
+
 
 int main() {
     string littleWomen = "libros/Little_Women.txt";
@@ -21,6 +23,11 @@ int main() {
     cout << " ==== SAIS PORTADO C++ ==== " << endl;
     for (const string& libro : libros) {
         procesar_libro(libro);
+    }
+
+    cout << "Manber and Myers" << endl;
+    for (const string& libro : libros) {
+        mediciones(libro);
     }
 
     return 0;
