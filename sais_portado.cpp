@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <vector>
 #include <string>
@@ -324,6 +325,91 @@ bool verificar_sa(
     return true;
 }
 
+// Buscar todas las ocurrencias de un patron
+vector<int> buscar_patron(
+    const vector<int>& T,
+    const vector<int>& SA,
+    const string& patron
+) {
+
+    if (patron.empty()) return {};
+
+    int n = SA.size();
+
+    // Convertir el patron a la misma representacion del texto
+    vector<int> P;
+
+    for (unsigned char c : patron) {
+        P.push_back(c + 1);
+    }
+
+    // Comparar el patron con el inicio de un sufijo
+    auto comparar = [&](int pos) {
+
+        for (int i = 0; i < (int)P.size(); i++) {
+
+            if (pos + i >= (int)T.size())
+                return -1;
+
+            if (T[pos + i] < P[i])
+                return -1;
+
+            if (T[pos + i] > P[i])
+                return 1;
+        }
+
+        return 0;
+    };
+
+    // Buscar limite izquierdo
+    int L = 0;
+    int R = n;
+
+    while (L < R) {
+
+        int M = (L + R) / 2;
+
+        if (comparar(SA[M]) < 0)
+            L = M + 1;
+        else
+            R = M;
+    }
+
+    int inicio = L;
+
+    // Buscar limite derecho
+    L = inicio;
+    R = n;
+
+    while (L < R) {
+
+        int M = (L + R) / 2;
+
+        if (comparar(SA[M]) <= 0)
+            L = M + 1;
+        else
+            R = M;
+    }
+
+    int fin = L;
+
+    // Obtener todas las posiciones encontradas
+    vector<int> posiciones;
+
+    for (int i = inicio; i < fin; i++) {
+
+        // No incluir el centinela
+        if (SA[i] < (int)T.size() - 1) {
+            posiciones.push_back(SA[i]);
+        }
+    }
+
+    // Ordenar las posiciones en el texto original
+    sort(posiciones.begin(), posiciones.end());
+
+    return posiciones;
+}
+
 // Procesar cada libro y medir tiempo y memoria
 void procesar_libro(const string& ruta_libro) {
 
@@ -377,6 +463,12 @@ void procesar_libro(const string& ruta_libro) {
     // Verificacion fuera de las mediciones
     bool correcto = verificar_sa(T, SA);
 
+    // Patron de prueba
+    string patron = "art";
+
+    // Buscar todas las coincidencias
+    vector<int> posiciones = buscar_patron(T, SA, patron);
+
     cout << "Libro: " << ruta_libro << endl;
 
     cout << "  Caracteres procesados: "
@@ -390,6 +482,25 @@ void procesar_libro(const string& ruta_libro) {
 
     cout << "  Verificacion del SA: "
          << (correcto ? "OK" : "FALLO") << endl;
+
+    cout << "  Patron buscado: "
+         << patron << endl;
+
+    cout << "  Numero de coincidencias: "
+         << posiciones.size() << endl;
+
+    cout << "  Posiciones: ";
+
+    if (posiciones.empty()) {
+        cout << "No se encontraron coincidencias";
+    }
+    else {
+        for (int pos : posiciones) {
+            cout << pos << " ";
+        }
+    }
+
+    cout << endl;
 
     cout << "--------------------------------------------------"
          << endl;

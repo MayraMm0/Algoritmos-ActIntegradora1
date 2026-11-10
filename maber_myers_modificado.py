@@ -1,3 +1,4 @@
+
 import time
 import tracemalloc
 
@@ -7,28 +8,23 @@ REPS = 3
 # Estructura auxiliar para ordenar por pares de rangos
 class SubstrRank:
     def __init__(self, left_rank=0, right_rank=0, index=0):
-        self.left_rank = left_rank    # Rank primera mitad del prefijo
-        self.right_rank = right_rank  # Rank segunda mitad del prefijo
-        self.index = index            # Índice original de sufijo en la cadena
+        self.left_rank = left_rank
+        self.right_rank = right_rank
+        self.index = index
 
 
 # Convierte tuplas ordenadas en números/rangos
-# Ahora recibe rank como parámetro para reutilizarlo y evitar crear una lista nueva en cada ronda.
 def make_ranks(substr_rank, rank, n):
     r = 1
 
     # Asignar el primer rango al primer sufijo ordenado
     rank[substr_rank[0].index] = r
 
-    # Comenzar en 1 porque el primer elemento ya tiene su rango asignado.
-    # Así comparamos cada elemento con el anterior, sin comparar incorrectamente el último elemento con el primero.
     for i in range(1, n):
-        # Si dos elementos consecutivos tienen diferente left/right rank aumentamos rank
         if (substr_rank[i].left_rank != substr_rank[i-1].left_rank or
             substr_rank[i].right_rank != substr_rank[i-1].right_rank):
             r += 1
 
-        # Mapea ese rank al arreglo de rangos usando el índice original del sufijo
         rank[substr_rank[i].index] = r
 
     return rank
@@ -58,13 +54,12 @@ def suffix_array(T, tiempos=None):
     for i in range(n):
         substr_rank.append(SubstrRank(ord(T[i]), ord(T[i + 1]) if i < n-1 else 0, i))
 
-    # Ahora crea rank una sola vez fuera del ciclo.
-    # Esta misma lista se reutilizará durante todas las rondas, evitando crear una lista nueva en cada llamada a make_ranks.
+    # Crear rank una sola vez fuera del ciclo
     rank = [0] * n
 
     t1 = time.perf_counter()
 
-    # primer ordenamiento basado en primeros dos caracteres
+    # Primer ordenamiento basado en primeros dos caracteres
     substr_rank.sort(key=lambda sr: (sr.left_rank, sr.right_rank))
 
     t2 = time.perf_counter()
@@ -77,14 +72,12 @@ def suffix_array(T, tiempos=None):
     while l < n:
         ta = time.perf_counter()
 
-        # Genera rangos basados en ordenamiento actual.
-        # Ahora se pasa la misma lista rank a la función, que actualizará sus valores directamente sin crear otra lista.
+        # Genera rangos basados en ordenamiento actual
         make_ranks(substr_rank, rank, n)
 
         tb = time.perf_counter()
 
         # 2. Prefix Doubling
-        # i consulta su rank acumulado y lo combina con el de l posiciones adelante
         for i in range(n):
             substr_rank[i].left_rank = rank[i]
             substr_rank[i].right_rank = rank[i+l] if i+l < n else 0
@@ -93,7 +86,7 @@ def suffix_array(T, tiempos=None):
         l *= 2
         tc = time.perf_counter()
 
-        # reordenar con nuevos pares de rangos
+        # Reordenar con nuevos pares de rangos
         substr_rank.sort(key=lambda sr: (sr.left_rank, sr.right_rank))
         td = time.perf_counter()
 
@@ -107,6 +100,55 @@ def suffix_array(T, tiempos=None):
     SA = [substr_rank[i].index for i in range(n)]
 
     return SA
+
+
+# Buscar todas las apariciones de un patrón usando el SA
+def buscar_patron(T, SA, patron):
+    if patron == "":
+        return []
+    n = len(T)
+    m = len(patron)
+
+    # Compara el patrón con el inicio de un sufijo
+    def comparar(pos):
+        for i in range(m):
+            if pos + i >= n:
+                return -1
+            if T[pos + i] < patron[i]:
+                return -1
+            if T[pos + i] > patron[i]:
+                return 1
+        return 0
+    # Primera búsqueda binaria: encontrar el primer sufijo
+    # que sea igual o mayor que el patrón
+    izquierda = 0
+    derecha = len(SA)
+    while izquierda < derecha:
+        medio = (izquierda + derecha) // 2
+        if comparar(SA[medio]) < 0:
+            izquierda = medio + 1
+        else:
+            derecha = medio
+    inicio = izquierda
+    # Segunda búsqueda binaria: encontrar el primer sufijo
+    # que sea estrictamente mayor que el patrón
+    izquierda = 0
+    derecha = len(SA)
+
+    while izquierda < derecha:
+        medio = (izquierda + derecha) // 2
+
+        if comparar(SA[medio]) <= 0:
+            izquierda = medio + 1
+        else:
+            derecha = medio
+    fin = izquierda
+
+    # Obtener todas las posiciones encontradas
+    posiciones = SA[inicio:fin]
+    # Ordenar las posiciones en el texto original
+    posiciones.sort()
+    return posiciones
 
 
 def mb(nbytes):
@@ -183,3 +225,15 @@ def mediciones(ruta_libro):
 
     print(f"  Memoria pico:     {pico:.1f} MB  ({pico * 1024 * 1024 / n:.0f} bytes por carácter)")
     print(f"  Memoria del SA:   {resultado:.1f} MB")
+
+    # Probar búsqueda de un patrón
+    patron = "art"
+
+    # Construir el SA para realizar la búsqueda
+    SA = suffix_array(T)
+
+    posiciones = buscar_patron(T, SA, patron)
+
+    print(f"\n  Búsqueda del patrón: '{patron}'")
+    print(f"  Número de apariciones: {len(posiciones)}")
+    print(f"  Posiciones: {posiciones}")

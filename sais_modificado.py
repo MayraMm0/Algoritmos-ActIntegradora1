@@ -60,7 +60,6 @@ def sais(T):
     # 1. Clasificación de sufijos entre S y L
     # S = 1
     # L = 0
-    # Se utiliza bytearray para almacenar la clasificación
     t = bytearray(len(T))
 
     t[len(T) - 1] = 1
@@ -99,7 +98,7 @@ def sais(T):
     else:
         LMS[len(T) - 1] = len(T) - 1
 
-    # Inducir sufijos L (recorrer de izquierda a derecha)
+    # Inducir sufijos L
     count = {}
 
     for i in range(len(T)):
@@ -116,7 +115,7 @@ def sais(T):
                 SA[buckets[symbol][0] + offset] = j
                 count[symbol] = offset + 1
 
-    # Inducir sufijos S (recorrer de derecha a izquierda)
+    # Inducir sufijos S
     count = {}
 
     for i in range(len(T) - 1, -1, -1):
@@ -219,6 +218,75 @@ def sais(T):
     return SA
 
 
+# Buscar todas las apariciones de un patrón usando el SA
+def buscar_patron(T, SA, patron):
+
+    if patron == "":
+        return []
+
+    # Convertir el patrón a la misma representación del texto
+    P = [ord(c) + 1 for c in patron]
+
+    n = len(T) - 1
+    m = len(P)
+
+    # Comparar el patrón con el inicio de un sufijo
+    def comparar(pos):
+
+        for i in range(m):
+
+            if pos + i >= n:
+                return -1
+
+            if T[pos + i] < P[i]:
+                return -1
+
+            if T[pos + i] > P[i]:
+                return 1
+
+        return 0
+
+    # Primera búsqueda binaria: encontrar el primer sufijo
+    # igual o mayor que el patrón
+    izquierda = 0
+    derecha = len(SA)
+
+    while izquierda < derecha:
+
+        medio = (izquierda + derecha) // 2
+
+        if comparar(SA[medio]) < 0:
+            izquierda = medio + 1
+        else:
+            derecha = medio
+
+    inicio = izquierda
+
+    # Segunda búsqueda binaria: encontrar el primer sufijo
+    # estrictamente mayor que el patrón
+    izquierda = 0
+    derecha = len(SA)
+
+    while izquierda < derecha:
+
+        medio = (izquierda + derecha) // 2
+
+        if comparar(SA[medio]) <= 0:
+            izquierda = medio + 1
+        else:
+            derecha = medio
+
+    fin = izquierda
+
+    # Obtener las posiciones encontradas
+    posiciones = SA[inicio:fin]
+
+    # Ordenar según su posición en el texto original
+    posiciones.sort()
+
+    return posiciones
+
+
 def procesar_libro(ruta_libro):
 
     try:
@@ -230,11 +298,13 @@ def procesar_libro(ruta_libro):
         print("No se encontró el archivo")
         return
 
-    # Añadir símbolo terminal '$'
-    if not texto.endswith('$'):
-        texto += '$'
+    except UnicodeDecodeError:
+        print(f"El archivo {ruta_libro} no es texto UTF-8 válido")
+        return
 
-    T = [ord(c) for c in texto]
+    # NUEVO: Convertir caracteres y agregar un símbolo terminal único
+    T = [ord(c) + 1 for c in texto]
+    T.append(0)
 
     # 2. Iniciar medición de memoria y tiempo
     tracemalloc.start()
@@ -253,7 +323,17 @@ def procesar_libro(ruta_libro):
     memoria_pico_mb = peak / (1024 * 1024)
 
     print(f"Libro: {ruta_libro}")
-    print(f"  - Caracteres procesados: {len(T)}")
+    print(f"  - Caracteres procesados: {len(T) - 1}")
     print(f"  - Tiempo de ejecución: {tiempo_total:.4f} segundos")
     print(f"  - Memoria pico alcanzada: {memoria_pico_mb:.2f} MB")
+
+    # Probar búsqueda de un patrón
+    patron = "art"
+
+    posiciones = buscar_patron(T, SA, patron)
+
+    print(f"\n  Búsqueda del patrón: '{patron}'")
+    print(f"  Número de apariciones: {len(posiciones)}")
+    print(f"  Posiciones: {posiciones}")
+
     print("-" * 50)
